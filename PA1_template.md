@@ -10,13 +10,12 @@ output:
 Before proceeding further, we will install and load required R libraries.
 In this case, plyr is needed.
 
-```{r load_libraries, echo=TRUE}
 
+```r
 if (!require("plyr")) {
   install.packages("plyr", repos="http://cran.rstudio.com/") 
   library("plyr")
 }
-
 ```
 ## Loading and preprocessing the data
 
@@ -26,7 +25,8 @@ Here, we do the following:
 - load the CSV;
 - convert the dates in the data frame to explicit date (POSIXlt) objects.
 
-```{r loaddata, echo=TRUE}
+
+```r
 unzip(zipfile=path.expand("activity.zip"),overwrite=TRUE)
 activity_data <- read.csv("activity.csv",stringsAsFactors = FALSE)
 activity_data$date <- as.POSIXlt(activity_data$date,format="%Y-%m-%d")
@@ -37,81 +37,95 @@ activity_data$date <- as.POSIXlt(activity_data$date,format="%Y-%m-%d")
 
 First, we use plyr (ddply) to get the sum of steps taken each day.
 
-```{r calc_mean_steps, echo=TRUE}
+
+```r
 activity_data.sum_by_day <- ddply(activity_data,.(date),summarize,total_steps = sum(steps))
 ```
 
 Next, we make a histogram of the total number of steps taken each day.
-```{r}
+
+```r
 hist(activity_data.sum_by_day$total_steps,breaks=10,main="Total Steps Per Day (Frequency Distribution)",ylab="Count",xlab="Number of Steps")
 ```
 
+![plot of chunk unnamed-chunk-1](figure/unnamed-chunk-1-1.png) 
+
 Finally, we compute the overall mean and median number of steps taken per day.
-```{r}
+
+```r
 mean_steps_per_day = mean(activity_data.sum_by_day$total_steps,na.rm=TRUE)
 median_steps_per_day = median(activity_data.sum_by_day$total_steps,na.rm=TRUE)
 ```
 
-The mean steps per day is `r mean_steps_per_day`.
+The mean steps per day is 1.0766189 &times; 10<sup>4</sup>.
 
-The median steps per day is `r median_steps_per_day`.
+The median steps per day is 10765.
 
 
 ## What is the average daily activity pattern?
 
 First, for each time interval, we average the number of steps taken across all days.  (We also tidy the data frame by moving the interval data to the index column.)
-```{r calc_daily_activity_pattern, echo=TRUE}
+
+```r
 activity_data.mean_by_interval <- ddply(activity_data,.(interval),summarize,mean_steps = mean(steps,na.rm=TRUE))
 rownames(activity_data.mean_by_interval) <- activity_data.mean_by_interval$interval
 ```
 
 Next, we plot the time series of the mean steps per interval.  
-```{r echo=TRUE}
+
+```r
 plot(x=activity_data.mean_by_interval,type="l",main="Average Daily Activity Pattern",xlab="Interval",ylab="Mean Steps")
 ```
 
+![plot of chunk unnamed-chunk-3](figure/unnamed-chunk-3-1.png) 
+
 Finally, we sort the data frame by mean steps, decreasing.
-```{r echo=TRUE}
+
+```r
 activity_data.mean_by_interval.sorted <- activity_data.mean_by_interval[order(activity_data.mean_by_interval$mean_steps,decreasing=TRUE),]
 ```
-Interval `r rownames(activity_data.mean_by_interval.sorted)[1]` has the largest mean number of steps (`r activity_data.mean_by_interval.sorted[1,"mean_steps"]`) across all days.
+Interval 835 has the largest mean number of steps (206.1698113) across all days.
 
 ## Imputing missing values
 
-There are `r sum(is.na(activity_data$steps))` missing values in the activity dataset.
+There are 2304 missing values in the activity dataset.
 
 To fix the missing values, we will replace them with the average for the time interval.  This is done by merging the activity data with the data frame containing the interval averages, and then replacing "steps" with "mean_steps" where "steps" is NA.
 
-```{r fix_missing_values, echo=TRUE}
 
+```r
 activity_data.no_na <- merge(activity_data, activity_data.mean_by_interval, by="interval")
 
 activity_data.no_na <- mutate(activity_data.no_na,steps=ifelse(is.na(steps), mean_steps, steps))
-
 ```
 
-There are now `r sum(is.na(activity_data.no_na$steps))` missing values in the activity dataset.
+There are now 0 missing values in the activity dataset.
 
 Now we recompute the total steps per day, the resulting histogram, and the overall mean and median with missing values imputed.  
-```{r calc_mean_steps_no_NA, echo=TRUE}
+
+```r
 activity_data.sum_by_day.no_na <- ddply(activity_data.no_na,.(date),summarize,total_steps = sum(steps))
 
 hist(activity_data.sum_by_day.no_na$total_steps,breaks=10,main="Total Steps Per Day (Frequency Distribution) With Imputed Values",ylab="Count",xlab="Number of Steps")
+```
 
+![plot of chunk calc_mean_steps_no_NA](figure/calc_mean_steps_no_NA-1.png) 
+
+```r
 mean_steps_per_day.no_na = mean(activity_data.sum_by_day.no_na$total_steps)
 median_steps_per_day.no_na = median(activity_data.sum_by_day.no_na$total_steps)
 ```
 
-The mean steps per day with imputed NA values is `r mean_steps_per_day.no_na`, as compared to `r mean_steps_per_day`.
+The mean steps per day with imputed NA values is 1.0766189 &times; 10<sup>4</sup>, as compared to 1.0766189 &times; 10<sup>4</sup>.
 
-The median steps per day with imputed NA values is `r median_steps_per_day.no_na`, as compared to `r median_steps_per_day`.
+The median steps per day with imputed NA values is 1.0766189 &times; 10<sup>4</sup>, as compared to 10765.
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
 (I was not able to complete this last portion, but below is my initial work.)
 We will add new columns to identify whether or not the data was collected on a weekday or weekend.
-```{r}
 
+```r
 activity_data.no_na.weekdays <- activity_data.no_na
 
 activity_data.no_na.weekdays$day <- weekdays(activity_data.no_na.weekdays$date)
