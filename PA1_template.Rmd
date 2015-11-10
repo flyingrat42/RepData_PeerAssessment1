@@ -17,6 +17,11 @@ if (!require("plyr")) {
   library("plyr")
 }
 
+if (!require("ggplot2")) {
+  install.packages("ggplot2", repos="http://cran.rstudio.com/")
+  library("ggplot2")
+}
+
 ```
 ## Loading and preprocessing the data
 
@@ -108,14 +113,24 @@ The median steps per day with imputed NA values is `r median_steps_per_day.no_na
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
-(I was not able to complete this last portion, but below is my initial work.)
-We will add new columns to identify whether or not the data was collected on a weekday or weekend.
+We will add new columns to identify whether or not the data was collected on a weekday or weekend.  
+
+We then recalculate the average steps per interval, grouping by weekend/weekday categories, and generate a panel plot to compare weekdays to weekends.
+
 ```{r}
 
 activity_data.no_na.weekdays <- activity_data.no_na
 
 activity_data.no_na.weekdays$day <- weekdays(activity_data.no_na.weekdays$date)
-activity_data.no_na.weekdays$day_type <- ifelse(activity_data.no_na.weekdays$day == "Saturday" || activity_data.no_na.weekdays$day == "Sunday","weekend","weekday")
+activity_data.no_na.weekdays$day_type <- ifelse(activity_data.no_na.weekdays$day == "Saturday" | activity_data.no_na.weekdays$day == "Sunday","weekend","weekday")
 
-#activity_data.no_na.weekdays$day_type <- as.factor(activity_data.no_na.weekdays$day_type)
+activity_data.no_na.weekdays$day_type <- as.factor(activity_data.no_na.weekdays$day_type)
+
+activity_data.no_na.weekdays.mean_by_interval <- ddply(activity_data.no_na.weekdays,.(interval,day_type),summarize,mean_steps = mean(steps,na.rm=TRUE))
+
+#rownames(activity_data.no_na.weekdays.mean_by_interval) <- activity_data.no_na.weekdays.mean_by_interval$interval
+
+qplot(x=interval,y=mean_steps,data=activity_data.no_na.weekdays.mean_by_interval, geom = "line",facets=day_type~.)
+
+
 ```
